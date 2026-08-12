@@ -1,0 +1,63 @@
+{
+  "Comment": "SmartRetailX — DynamoDB Table Definitions (AWS CloudFormation / SDK reference)",
+
+  "Tables": [
+
+    {
+      "TableName": "Products",
+      "Comment": "Owned by ProductService. Partition key = productId (string UUID).",
+      "BillingMode": "PAY_PER_REQUEST",
+      "KeySchema": [
+        { "AttributeName": "productId", "KeyType": "HASH" }
+      ],
+      "AttributeDefinitions": [
+        { "AttributeName": "productId", "AttributeType": "S" },
+        { "AttributeName": "category",  "AttributeType": "S" }
+      ],
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "category-index",
+          "Comment": "Allows efficient listing of products by category",
+          "KeySchema": [
+            { "AttributeName": "category", "KeyType": "HASH" }
+          ],
+          "Projection": { "ProjectionType": "ALL" }
+        }
+      ],
+      "SampleItem": {
+        "productId":   { "S": "prod-001" },
+        "name":        { "S": "Laptop Pro 15" },
+        "description": { "S": "High-performance laptop with 32GB RAM" },
+        "price":       { "N": "999.99" },
+        "category":    { "S": "Electronics" },
+        "imageKey":    { "S": "product-images/prod-001/main.jpg" },
+        "createdAt":   { "S": "2026-08-12T08:00:00Z" },
+        "updatedAt":   { "S": "2026-08-12T08:00:00Z" }
+      }
+    },
+
+    {
+      "TableName": "Inventory",
+      "Comment": "Owned by InventoryService. Tracks stock levels per product per warehouse.",
+      "BillingMode": "PAY_PER_REQUEST",
+      "KeySchema": [
+        { "AttributeName": "productId",   "KeyType": "HASH"  },
+        { "AttributeName": "warehouseId", "KeyType": "RANGE" }
+      ],
+      "AttributeDefinitions": [
+        { "AttributeName": "productId",   "AttributeType": "S" },
+        { "AttributeName": "warehouseId", "AttributeType": "S" }
+      ],
+      "SampleItem": {
+        "productId":    { "S": "prod-001" },
+        "warehouseId":  { "S": "wh-us-east-1" },
+        "quantityOnHand":   { "N": "150" },
+        "quantityReserved": { "N": "12" },
+        "reorderLevel":     { "N": "20" },
+        "lastRestockedAt":  { "S": "2026-08-10T06:00:00Z" },
+        "updatedAt":        { "S": "2026-08-12T08:00:00Z" }
+      }
+    }
+
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "Comment": "SmartRetailX — EventBridge Event Schemas (event-bus: smartretailx-event-bus)",
+  "Source": "com.smartretailx",
+
+  "Events": [
+
+    {
+      "EventName": "OrderCreated",
+      "Version": "1.0",
+      "Source": "com.smartretailx.order-service",
+      "DetailType": "OrderCreated",
+      "Description": "Published by OrderService immediately after a new order is persisted to RDS.",
+      "Producers": ["OrderService"],
+      "Consumers": ["PaymentService", "InventoryService", "NotificationService"],
+      "Schema": {
+        "version":     "string  — Schema version, e.g. '1.0'",
+        "orderId":     "int     — RDS orders.id",
+        "userId":      "int     — RDS users.id",
+        "totalAmount": "decimal — Calculated order total",
+        "currency":    "string  — ISO 4217, e.g. 'USD'",
+        "status":      "string  — Always 'Pending' at creation",
+        "orderDate":   "string  — ISO 8601 UTC",
+        "items": [
+          {
+            "productId":   "string  — DynamoDB Products.productId",
+            "productName": "string  — Snapshot of name at order time",
+            "quantity":    "int",
+            "unitPrice":   "decimal"
+          }
+        ]
+      },
+      "SamplePayload": {
+        "version":     "1.0",
+        "orderId":     42,
+        "userId":      7,
+        "totalAmount": 1999.98,
+        "currency":    "USD",
+        "status":      "Pending",
+        "orderDate":   "2026-08-12T08:43:00Z",
+        "items": [
+          {
+            "productId":   "prod-001",
+            "productName": "Laptop Pro 15",
+            "quantity":    2,
+            "unitPrice":   999.99
+          }
+        ]
+      }
+    },
+
+    {
+      "EventName": "PaymentCompleted",
+      "Version": "1.0",
+      "Source": "com.smartretailx.payment-service",
+      "DetailType": "PaymentCompleted",
+      "Description": "Published by PaymentService when a payment transaction succeeds.",
+      "Producers": ["PaymentService"],
+      "Consumers": ["OrderService", "NotificationService"],
+      "Schema": {
+        "version":        "string  — Schema version",
+        "paymentId":      "int     — RDS payments.id",
+        "orderId":        "int     — RDS orders.id",
+        "userId":         "int     — RDS users.id",
+        "amount":         "decimal",
+        "currency":       "string",
+        "paymentMethod":  "string  — Card | UPI | Wallet | COD",
+        "transactionRef": "string  — Gateway reference ID",
+        "paidAt":         "string  — ISO 8601 UTC"
+      },
+      "SamplePayload": {
+        "version":        "1.0",
+        "paymentId":      15,
+        "orderId":        42,
+        "userId":         7,
+        "amount":         1999.98,
+        "currency":       "USD",
+        "paymentMethod":  "Card",
+        "transactionRef": "txn_abc123xyz",
+        "paidAt":         "2026-08-12T08:45:30Z"
+      }
+    },
+
+    {
+      "EventName": "PaymentFailed",
+      "Version": "1.0",
+      "Source": "com.smartretailx.payment-service",
+      "DetailType": "PaymentFailed",
+      "Description": "Published by PaymentService when a payment transaction is declined or errors.",
+      "Producers": ["PaymentService"],
+      "Consumers": ["OrderService", "InventoryService", "NotificationService"],
+      "Schema": {
+        "version":       "string  — Schema version",
+        "paymentId":     "int     — RDS payments.id",
+        "orderId":       "int     — RDS orders.id",
+        "userId":        "int     — RDS users.id",
+        "amount":        "decimal",
+        "currency":      "string",
+        "failureReason": "string  — e.g. 'insufficient_funds' | 'card_expired' | 'gateway_timeout'",
+        "failedAt":      "string  — ISO 8601 UTC"
+      },
+      "SamplePayload": {
+        "version":       "1.0",
+        "paymentId":     16,
+        "orderId":       43,
+        "userId":        8,
+        "amount":        499.99,
+        "currency":      "USD",
+        "failureReason": "insufficient_funds",
+        "failedAt":      "2026-08-12T09:00:00Z"
+      }
+    },
+
+    {
+      "EventName": "InventoryUpdated",
+      "Version": "1.0",
+      "Source": "com.smartretailx.inventory-service",
+      "DetailType": "InventoryUpdated",
+      "Description": "Published by InventoryService when stock levels change (reservation, release, restock).",
+      "Producers": ["InventoryService"],
+      "Consumers": ["ProductService", "NotificationService"],
+      "Schema": {
+        "version":            "string  — Schema version",
+        "productId":          "string  — DynamoDB Products.productId",
+        "warehouseId":        "string  — DynamoDB Inventory.warehouseId",
+        "changeType":         "string  — Reserved | Released | Restocked | Adjusted",
+        "quantityBefore":     "int     — Stock level before change",
+        "quantityAfter":      "int     — Stock level after change",
+        "quantityReserved":   "int     — Current reserved quantity",
+        "belowReorderLevel":  "boolean — true if reorder should be triggered",
+        "updatedAt":          "string  — ISO 8601 UTC"
+      },
+      "SamplePayload": {
+        "version":            "1.0",
+        "productId":          "prod-001",
+        "warehouseId":        "wh-us-east-1",
+        "changeType":         "Reserved",
+        "quantityBefore":     150,
+        "quantityAfter":      148,
+        "quantityReserved":   14,
+        "belowReorderLevel":  false,
+        "updatedAt":          "2026-08-12T08:43:05Z"
+      }
+    },
+
+    {
+      "EventName": "OrderStatusChanged",
+      "Version": "1.0",
+      "Source": "com.smartretailx.order-service",
+      "DetailType": "OrderStatusChanged",
+      "Description": "Published by OrderService whenever an order transitions between status values.",
+      "Producers": ["OrderService", "PaymentService"],
+      "Consumers": ["NotificationService", "InventoryService"],
+      "Schema": {
+        "version":     "string  — Schema version",
+        "orderId":     "int     — RDS orders.id",
+        "userId":      "int     — RDS users.id",
+        "statusFrom":  "string  — Previous status",
+        "statusTo":    "string  — New status",
+        "reason":      "string  — Optional, e.g. 'PaymentFailed'",
+        "changedAt":   "string  — ISO 8601 UTC"
+      },
+      "SamplePayload": {
+        "version":     "1.0",
+        "orderId":     42,
+        "userId":      7,
+        "statusFrom":  "Pending",
+        "statusTo":    "Processing",
+        "reason":      "PaymentCompleted",
+        "changedAt":   "2026-08-12T08:45:35Z"
+      }
+    }
+
+  ]
+}
