@@ -1,0 +1,612 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  SmartRetailX cloud infrastructure.
+  Uses the existing SmartRetailX VPC and subnets.
+
+Parameters:
+
+  EnvironmentName:
+    Type: String
+    Default: SmartRetailX
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Existing SmartRetailX VPC
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing public subnet A
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing public subnet B
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing private subnet A
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing private subnet B
+
+  UserImage:
+    Type: String
+    Description: ECR image URI for UserService
+
+  ProductImage:
+    Type: String
+    Description: ECR image URI for ProductService
+
+  OrderImage:
+    Type: String
+    Description: ECR image URI for OrderService
+
+
+Resources:
+
+  # ============================================================
+  # SECURITY GROUPS
+  # ============================================================
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Retain
+    Properties:
+      GroupDescription: SmartRetailX Application Load Balancer security group
+      VpcId: !Ref VpcId
+
+      SecurityGroupIngress:
+
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+      Tags:
+        - Key: Name
+          Value: SmartRetailX-ALB-SG
+
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Retain
+    Properties:
+      GroupDescription: SmartRetailX ECS services security group
+      VpcId: !Ref VpcId
+
+      SecurityGroupIngress:
+
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+
+      Tags:
+        - Key: Name
+          Value: SmartRetailX-ECS-SG
+
+
+  # ============================================================
+  # ECR REPOSITORIES
+  # ============================================================
+
+  UserRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: smartretailx-user
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+
+  ProductRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: smartretailx-product
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+
+  OrderRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: smartretailx-order
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+
+  # ============================================================
+  # CLOUDWATCH LOG GROUPS
+  # ============================================================
+
+  UserLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: /ecs/SmartRetailX-UserTask
+      RetentionInDays: 30
+
+
+  ProductLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: /ecs/SmartRetailX-ProductTask
+      RetentionInDays: 30
+
+
+  OrderLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: /ecs/SmartRetailX-OrderTask
+      RetentionInDays: 30
+
+
+  # ============================================================
+  # IAM ROLE FOR ECS
+  # ============================================================
+
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+
+    Properties:
+      RoleName: SmartRetailX-ECS-ExecutionRole
+
+      AssumeRolePolicyDocument:
+
+        Version: '2012-10-17'
+
+        Statement:
+
+          - Effect: Allow
+
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+
+            Action:
+              - sts:AssumeRole
+
+      ManagedPolicyArns:
+
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+
+  # ============================================================
+  # ECS CLUSTER
+  # ============================================================
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    DeletionPolicy: Retain
+
+    Properties:
+      ClusterName: SmartRetailX-Cluster
+
+      ClusterSettings:
+
+        - Name: containerInsights
+          Value: enabled
+
+
+  # ============================================================
+  # APPLICATION LOAD BALANCER
+  # ============================================================
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Name: SmartRetailX-ALB
+
+      Scheme: internet-facing
+
+      Type: application
+
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+
+      Tags:
+        - Key: Name
+          Value: SmartRetailX-ALB
+
+
+  # ============================================================
+  # USER TARGET GROUP
+  # ============================================================
+
+  UserTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Name: SmartRetailX-User-TG
+
+      Port: 8080
+
+      Protocol: HTTP
+
+      TargetType: ip
+
+      VpcId: !Ref VpcId
+
+      HealthCheckEnabled: true
+
+      HealthCheckPath: /
+
+      HealthCheckProtocol: HTTP
+
+      HealthCheckPort: traffic-port
+
+      HealthyThresholdCount: 2
+
+      UnhealthyThresholdCount: 3
+
+      HealthCheckIntervalSeconds: 30
+
+      HealthCheckTimeoutSeconds: 5
+
+
+  # ============================================================
+  # PRODUCT TARGET GROUP
+  # ============================================================
+
+  ProductTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Name: SmartRetailX-Product-TG
+
+      Port: 8080
+
+      Protocol: HTTP
+
+      TargetType: ip
+
+      VpcId: !Ref VpcId
+
+      HealthCheckPath: /
+
+      HealthCheckProtocol: HTTP
+
+
+  # ============================================================
+  # ORDER TARGET GROUP
+  # ============================================================
+
+  OrderTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Name: SmartRetailX-Order-TG
+
+      Port: 8080
+
+      Protocol: HTTP
+
+      TargetType: ip
+
+      VpcId: !Ref VpcId
+
+      HealthCheckPath: /
+
+      HealthCheckProtocol: HTTP
+
+
+  # ============================================================
+  # ALB LISTENER
+  # ============================================================
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DeletionPolicy: Retain
+
+    Properties:
+
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+
+      Port: 80
+
+      Protocol: HTTP
+
+      DefaultActions:
+
+        - Type: forward
+          TargetGroupArn: !Ref UserTargetGroup
+
+
+  # ============================================================
+  # USER ECS TASK DEFINITION
+  # ============================================================
+
+  UserTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Family: SmartRetailX-UserTask
+
+      NetworkMode: awsvpc
+
+      RequiresCompatibilities:
+        - FARGATE
+
+      Cpu: '512'
+
+      Memory: '1024'
+
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+
+      ContainerDefinitions:
+
+        - Name: user-service
+
+          Image: !Ref UserImage
+
+          Essential: true
+
+          PortMappings:
+
+            - ContainerPort: 8080
+              Protocol: tcp
+
+          LogConfiguration:
+
+            LogDriver: awslogs
+
+            Options:
+
+              awslogs-group: /ecs/SmartRetailX-UserTask
+
+              awslogs-region: !Ref AWS::Region
+
+              awslogs-stream-prefix: ecs
+
+
+  # ============================================================
+  # PRODUCT ECS TASK DEFINITION
+  # ============================================================
+
+  ProductTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Family: SmartRetailX-ProductTask
+
+      NetworkMode: awsvpc
+
+      RequiresCompatibilities:
+        - FARGATE
+
+      Cpu: '512'
+
+      Memory: '1024'
+
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+
+      ContainerDefinitions:
+
+        - Name: product-service
+
+          Image: !Ref ProductImage
+
+          Essential: true
+
+          PortMappings:
+
+            - ContainerPort: 8080
+              Protocol: tcp
+
+          LogConfiguration:
+
+            LogDriver: awslogs
+
+            Options:
+
+              awslogs-group: /ecs/SmartRetailX-ProductTask
+
+              awslogs-region: !Ref AWS::Region
+
+              awslogs-stream-prefix: ecs
+
+
+  # ============================================================
+  # ORDER ECS TASK DEFINITION
+  # ============================================================
+
+  OrderTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DeletionPolicy: Retain
+
+    Properties:
+
+      Family: SmartRetailX-OrderTask
+
+      NetworkMode: awsvpc
+
+      RequiresCompatibilities:
+        - FARGATE
+
+      Cpu: '512'
+
+      Memory: '1024'
+
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+
+      ContainerDefinitions:
+
+        - Name: order-service
+
+          Image: !Ref OrderImage
+
+          Essential: true
+
+          PortMappings:
+
+            - ContainerPort: 8080
+              Protocol: tcp
+
+          LogConfiguration:
+
+            LogDriver: awslogs
+
+            Options:
+
+              awslogs-group: /ecs/SmartRetailX-OrderTask
+
+              awslogs-region: !Ref AWS::Region
+
+              awslogs-stream-prefix: ecs
+
+
+  # ============================================================
+  # USER ECS SERVICE
+  # ============================================================
+
+  UserService:
+    Type: AWS::ECS::Service
+    DeletionPolicy: Retain
+
+    DependsOn:
+      - ALBListener
+
+    Properties:
+
+      ServiceName: SmartRetailX-UserService
+
+      Cluster: !Ref ECSCluster
+
+      LaunchType: FARGATE
+
+      DesiredCount: 1
+
+      TaskDefinition: !Ref UserTaskDefinition
+
+      NetworkConfiguration:
+
+        AwsvpcConfiguration:
+
+          AssignPublicIp: DISABLED
+
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+
+      LoadBalancers:
+
+        - ContainerName: user-service
+          ContainerPort: 8080
+          TargetGroupArn: !Ref UserTargetGroup
+
+
+  # ============================================================
+  # PRODUCT ECS SERVICE
+  # ============================================================
+
+  ProductService:
+    Type: AWS::ECS::Service
+    DeletionPolicy: Retain
+
+    Properties:
+
+      ServiceName: SmartRetailX-ProductService
+
+      Cluster: !Ref ECSCluster
+
+      LaunchType: FARGATE
+
+      DesiredCount: 1
+
+      TaskDefinition: !Ref ProductTaskDefinition
+
+      NetworkConfiguration:
+
+        AwsvpcConfiguration:
+
+          AssignPublicIp: DISABLED
+
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+
+      LoadBalancers:
+
+        - ContainerName: product-service
+          ContainerPort: 8080
+          TargetGroupArn: !Ref ProductTargetGroup
+
+
+  # ============================================================
+  # ORDER ECS SERVICE
+  # ============================================================
+
+  OrderService:
+    Type: AWS::ECS::Service
+    DeletionPolicy: Retain
+
+    Properties:
+
+      ServiceName: SmartRetailX-OrderService
+
+      Cluster: !Ref ECSCluster
+
+      LaunchType: FARGATE
+
+      DesiredCount: 1
+
+      TaskDefinition: !Ref OrderTaskDefinition
+
+      NetworkConfiguration:
+
+        AwsvpcConfiguration:
+
+          AssignPublicIp: DISABLED
+
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+
+      LoadBalancers:
+
+        - ContainerName: order-service
+          ContainerPort: 8080
+          TargetGroupArn: !Ref OrderTargetGroup
+
+
+# Outputs section temporarily removed for CloudFormation resource import
