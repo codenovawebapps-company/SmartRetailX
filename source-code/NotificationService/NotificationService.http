@@ -1,0 +1,26 @@
+@NotificationService_HostAddress = http://localhost:5004
+
+GET {{NotificationService_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{NotificationService_HostAddress}}/api/v1/notifications
+Accept: application/json
+
+###
+
+POST {{NotificationService_HostAddress}}/api/v1/notifications
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "orderId": 42,
+  "type": "ORDER_CREATED",
+  "message": "Order #42 created successfully."
+}
+
+###
+
+GET {{NotificationService_HostAddress}}/api/v1/notifications/1
+Accept: application/json

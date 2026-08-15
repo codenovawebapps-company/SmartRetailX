@@ -23,7 +23,14 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseAuthorization();
 
+// Health check endpoint for ALB — no auth required
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "healthy",
+    service = "user-service",
+    timestamp = DateTime.UtcNow
+})).AllowAnonymous();
+
 app.MapControllers();
-app.MapHealthChecks("/health");
 
 app.Run();

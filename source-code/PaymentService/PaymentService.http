@@ -1,0 +1,40 @@
+@PaymentService_HostAddress = http://localhost:5005
+
+GET {{PaymentService_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{PaymentService_HostAddress}}/api/v1/payments
+Accept: application/json
+
+###
+
+POST {{PaymentService_HostAddress}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "orderId": 1,
+  "userId": 2,
+  "amount": 999.99,
+  "currency": "USD",
+  "paymentMethod": "Card"
+}
+
+###
+
+POST {{PaymentService_HostAddress}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "orderId": 2,
+  "userId": 2,
+  "amount": 99.99,
+  "currency": "USD",
+  "paymentMethod": "Card"
+}
+
+###
+
+GET {{PaymentService_HostAddress}}/api/v1/payments/1
+Accept: application/json

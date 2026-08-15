@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "a8f7c6e1-2b3a-4c5d-6e7f-8a9b0c1d2e3f",
 		"name": "SmartRetailX Microservices Collection",
-		"description": "Postman Collection for SmartRetailX User, Product, and Order microservices.",
+		"description": "Postman Collection for SmartRetailX Microservices including User, Product, Order, Payment, and Notification services.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -245,6 +245,323 @@
 								"users",
 								"2",
 								"orders"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5005/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5005",
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5005/api/v1/payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5005",
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment (Success)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": 1,\n  \"userId\": 2,\n  \"amount\": 999.99,\n  \"currency\": \"USD\",\n  \"paymentMethod\": \"Card\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5005/api/v1/payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5005",
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment (Failure)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": 2,\n  \"userId\": 2,\n  \"amount\": 99.99,\n  \"currency\": \"USD\",\n  \"paymentMethod\": \"Card\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5005/api/v1/payments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5005",
+							"path": [
+								"api",
+								"v1",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5005/api/v1/payments/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5005",
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Notification Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5004/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5004/api/v1/notifications",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"api",
+								"v1",
+								"notifications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Mock Notification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 2,\n  \"orderId\": 42,\n  \"type\": \"ORDER_CREATED\",\n  \"message\": \"Order #42 created successfully.\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5004/api/v1/notifications",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"api",
+								"v1",
+								"notifications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Simulate OrderCreated Event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"evt_order_123\",\n  \"detail-type\": \"OrderCreated\",\n  \"source\": \"com.smartretailx.order-service\",\n  \"time\": \"2026-08-15T14:42:00Z\",\n  \"detail\": {\n    \"version\": \"1.0\",\n    \"orderId\": 42,\n    \"userId\": 2,\n    \"totalAmount\": 999.99,\n    \"currency\": \"USD\",\n    \"status\": \"Pending\",\n    \"orderDate\": \"2026-08-15T14:42:00Z\",\n    \"items\": [\n      {\n        \"productId\": \"prod-001\",\n        \"productName\": \"Laptop\",\n        \"quantity\": 1,\n        \"unitPrice\": 999.99\n      }\n    ]\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5004/api/v1/notifications/simulate-sqs",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"simulate-sqs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Simulate PaymentCompleted Event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"evt_payment_456\",\n  \"detail-type\": \"PaymentCompleted\",\n  \"source\": \"com.smartretailx.payment-service\",\n  \"time\": \"2026-08-15T14:43:00Z\",\n  \"detail\": {\n    \"version\": \"1.0\",\n    \"paymentId\": 1,\n    \"orderId\": 42,\n    \"userId\": 2,\n    \"amount\": 999.99,\n    \"currency\": \"USD\",\n    \"paymentMethod\": \"Card\",\n    \"transactionRef\": \"txn_abcdef123456\",\n    \"paidAt\": \"2026-08-15T14:43:00Z\"\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5004/api/v1/notifications/simulate-sqs",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"simulate-sqs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Simulate PaymentFailed Event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"evt_payment_789\",\n  \"detail-type\": \"PaymentFailed\",\n  \"source\": \"com.smartretailx.payment-service\",\n  \"time\": \"2026-08-15T14:44:00Z\",\n  \"detail\": {\n    \"version\": \"1.0\",\n    \"paymentId\": 2,\n    \"orderId\": 43,\n    \"userId\": 2,\n    \"amount\": 99.99,\n    \"currency\": \"USD\",\n    \"failureReason\": \"insufficient_funds\",\n    \"failedAt\": \"2026-08-15T14:44:00Z\"\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5004/api/v1/notifications/simulate-sqs",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"simulate-sqs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Idempotency Cache",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5004/api/v1/notifications/clear-cache",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5004",
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"clear-cache"
 							]
 						}
 					},
