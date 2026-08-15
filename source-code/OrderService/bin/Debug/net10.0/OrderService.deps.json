@@ -8,11 +8,31 @@
     ".NETCoreApp,Version=v10.0": {
       "OrderService/1.0.0": {
         "dependencies": {
+          "AWSSDK.EventBridge": "4.0.100.8",
           "Microsoft.AspNetCore.OpenApi": "10.0.11",
           "Swashbuckle.AspNetCore": "10.2.3"
         },
         "runtime": {
           "OrderService.dll": {}
+        }
+      },
+      "AWSSDK.Core/4.0.101": {
+        "runtime": {
+          "lib/net8.0/AWSSDK.Core.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.101.0"
+          }
+        }
+      },
+      "AWSSDK.EventBridge/4.0.100.8": {
+        "dependencies": {
+          "AWSSDK.Core": "4.0.101"
+        },
+        "runtime": {
+          "lib/net8.0/AWSSDK.EventBridge.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.100.8"
+          }
         }
       },
       "Microsoft.AspNetCore.OpenApi/10.0.11": {
@@ -78,6 +98,20 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AWSSDK.Core/4.0.101": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-7Q0z0fLpy+w6h4G5z/qZ6PYGzZ0DgYjYkVdGMnhtjkgQaKX+Sjm0YxfFxFILRewxC4o6wwnrbvwaSj41LgRRfg==",
+      "path": "awssdk.core/4.0.101",
+      "hashPath": "awssdk.core.4.0.101.nupkg.sha512"
+    },
+    "AWSSDK.EventBridge/4.0.100.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-a1dioy4+V1xMM6bKJkCwQL3uOomCvAnzZgtc+CwCU/2tSy1ygOwY2IbDm0V63gAxwqgUia//s1QJMiTy4WyBuA==",
+      "path": "awssdk.eventbridge/4.0.100.8",
+      "hashPath": "awssdk.eventbridge.4.0.100.8.nupkg.sha512"
     },
     "Microsoft.AspNetCore.OpenApi/10.0.11": {
       "type": "package",

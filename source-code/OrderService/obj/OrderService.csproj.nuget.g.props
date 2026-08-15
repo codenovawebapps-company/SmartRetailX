@@ -18,5 +18,7 @@
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <PkgMicrosoft_Extensions_ApiDescription_Server Condition=" '$(PkgMicrosoft_Extensions_ApiDescription_Server)' == '' ">C:\Users\User\.nuget\packages\microsoft.extensions.apidescription.server\10.0.0</PkgMicrosoft_Extensions_ApiDescription_Server>
+    <PkgAWSSDK_Core Condition=" '$(PkgAWSSDK_Core)' == '' ">C:\Users\User\.nuget\packages\awssdk.core\4.0.101</PkgAWSSDK_Core>
+    <PkgAWSSDK_EventBridge Condition=" '$(PkgAWSSDK_EventBridge)' == '' ">C:\Users\User\.nuget\packages\awssdk.eventbridge\4.0.100.8</PkgAWSSDK_EventBridge>
   </PropertyGroup>
 </Project>

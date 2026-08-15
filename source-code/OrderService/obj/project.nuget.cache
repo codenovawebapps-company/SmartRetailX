@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "i33nom4F5G0=",
+  "dgSpecHash": "gbWpPua7wyk=",
   "success": true,
   "projectFilePath": "E:\\smartretailX\\source-code\\OrderService\\OrderService.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\User\\.nuget\\packages\\awssdk.core\\4.0.101\\awssdk.core.4.0.101.nupkg.sha512",
+    "C:\\Users\\User\\.nuget\\packages\\awssdk.eventbridge\\4.0.100.8\\awssdk.eventbridge.4.0.100.8.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.11\\microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\microsoft.extensions.apidescription.server\\10.0.0\\microsoft.extensions.apidescription.server.10.0.0.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\microsoft.openapi\\2.7.5\\microsoft.openapi.2.7.5.nupkg.sha512",
