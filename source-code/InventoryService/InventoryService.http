@@ -1,0 +1,37 @@
+@InventoryService_HostAddress = http://localhost:5006
+
+### Health Check
+GET {{InventoryService_HostAddress}}/health
+Accept: application/json
+
+### Get All Inventory Stock
+GET {{InventoryService_HostAddress}}/api/v1/inventory
+Accept: application/json
+
+### Get Single Product Stock
+GET {{InventoryService_HostAddress}}/api/v1/inventory/PROD001
+Accept: application/json
+
+### Check Stock Availability
+GET {{InventoryService_HostAddress}}/api/v1/inventory/check/PROD001?quantity=10
+Accept: application/json
+
+### Reduce Stock
+POST {{InventoryService_HostAddress}}/api/v1/inventory/reduce
+Content-Type: application/json
+
+{
+  "productId": "PROD001",
+  "quantity": 5
+}
+
+### Process OrderCreatedEvent
+POST {{InventoryService_HostAddress}}/api/v1/inventory/events/order-created
+Content-Type: application/json
+
+{
+  "eventType": "OrderCreated",
+  "orderId": "ORD-1001",
+  "productId": "PROD001",
+  "quantity": 2
+}
