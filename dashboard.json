@@ -1,240 +1,186 @@
 {
   "widgets": [
     {
-      "type": "metric",
+      "type": "alarm",
       "x": 0,
       "y": 0,
-      "width": 8,
-      "height": 6,
+      "width": 24,
+      "height": 3,
       "properties": {
-        "title": "ECS CPU Utilization",
-        "metrics": [
-          [
-            "AWS/ECS",
-            "CPUUtilization",
-            "ClusterName",
-            "SmartRetailX-Cluster"
-          ]
-        ],
-        "period": 60,
-        "stat": "Average",
-        "view": "timeSeries",
-        "region": "ap-south-1"
-      }
-    },
-    {
-      "type": "metric",
-      "x": 8,
-      "y": 0,
-      "width": 8,
-      "height": 6,
-      "properties": {
-        "title": "ECS Memory Utilization",
-        "metrics": [
-          [
-            "AWS/ECS",
-            "MemoryUtilization",
-            "ClusterName",
-            "SmartRetailX-Cluster"
-          ]
-        ],
-        "period": 60,
-        "stat": "Average",
-        "view": "timeSeries",
-        "region": "ap-south-1"
-      }
-    },
-    {
-      "type": "metric",
-      "x": 16,
-      "y": 0,
-      "width": 8,
-      "height": 6,
-      "properties": {
-        "title": "ECS Running Tasks",
-        "metrics": [
-          [
-            "ECS/ContainerInsights",
-            "RunningTaskCount",
-            "ClusterName",
-            "SmartRetailX-Cluster"
-          ]
-        ],
-        "period": 60,
-        "stat": "Average",
-        "view": "timeSeries",
-        "region": "ap-south-1"
+        "title": "🔔 CloudWatch Alarms Status",
+        "alarms": [
+          "arn:aws:cloudwatch:ap-south-1:530751148786:alarm:SmartRetailX-HighCPUAlarm",
+          "arn:aws:cloudwatch:ap-south-1:530751148786:alarm:SmartRetailX-ALB-5XX-Alarm"
+        ]
       }
     },
     {
       "type": "metric",
       "x": 0,
-      "y": 6,
+      "y": 3,
       "width": 8,
       "height": 6,
       "properties": {
-        "title": "ALB Request Count",
+        "title": "ALB - Request Count",
         "metrics": [
           [
             "AWS/ApplicationELB",
             "RequestCount",
             "LoadBalancer",
-            "app/SmartRetailX-ALB/REPLACE_WITH_ALB_SUFFIX"
+            "SmartRetailX-ALB"
           ]
         ],
-        "period": 60,
-        "stat": "Sum",
         "view": "timeSeries",
+        "stat": "Sum",
+        "period": 60,
         "region": "ap-south-1"
       }
     },
     {
       "type": "metric",
       "x": 8,
-      "y": 6,
+      "y": 3,
       "width": 8,
       "height": 6,
       "properties": {
-        "title": "ALB Response Time (Latency)",
-        "metrics": [
-          [
-            "AWS/ApplicationELB",
-            "TargetResponseTime",
-            "LoadBalancer",
-            "app/SmartRetailX-ALB/REPLACE_WITH_ALB_SUFFIX"
-          ]
-        ],
-        "period": 60,
-        "stat": "Average",
-        "view": "timeSeries",
-        "region": "ap-south-1"
-      }
-    },
-    {
-      "type": "metric",
-      "x": 16,
-      "y": 6,
-      "width": 8,
-      "height": 6,
-      "properties": {
-        "title": "ALB 5xx Errors",
+        "title": "ALB - HTTP 5xx Errors",
         "metrics": [
           [
             "AWS/ApplicationELB",
             "HTTPCode_ELB_5XX_Count",
             "LoadBalancer",
-            "app/SmartRetailX-ALB/REPLACE_WITH_ALB_SUFFIX"
-          ],
-          [
-            "AWS/ApplicationELB",
-            "HTTPCode_Target_5XX_Count",
-            "LoadBalancer",
-            "app/SmartRetailX-ALB/REPLACE_WITH_ALB_SUFFIX"
+            "SmartRetailX-ALB"
           ]
         ],
-        "period": 60,
+        "view": "timeSeries",
         "stat": "Sum",
-        "view": "timeSeries",
-        "region": "ap-south-1"
-      }
-    },
-    {
-      "type": "metric",
-      "x": 0,
-      "y": 12,
-      "width": 8,
-      "height": 6,
-      "properties": {
-        "title": "RDS CPU Utilization",
-        "metrics": [
-          [
-            "AWS/RDS",
-            "CPUUtilization",
-            "DBInstanceIdentifier",
-            "smartretailx-db"
-          ]
-        ],
         "period": 60,
-        "stat": "Average",
-        "view": "timeSeries",
-        "region": "ap-south-1"
-      }
-    },
-    {
-      "type": "metric",
-      "x": 8,
-      "y": 12,
-      "width": 8,
-      "height": 6,
-      "properties": {
-        "title": "RDS Database Connections",
-        "metrics": [
-          [
-            "AWS/RDS",
-            "DatabaseConnections",
-            "DBInstanceIdentifier",
-            "smartretailx-db"
-          ]
-        ],
-        "period": 60,
-        "stat": "Average",
-        "view": "timeSeries",
         "region": "ap-south-1"
       }
     },
     {
       "type": "metric",
       "x": 16,
-      "y": 12,
+      "y": 3,
       "width": 8,
       "height": 6,
       "properties": {
-        "title": "Lambda Invocations",
+        "title": "ALB - Target Response Time",
         "metrics": [
           [
-            "AWS/Lambda",
-            "Invocations",
-            "FunctionName",
-            "SmartRetailX-Function"
+            "AWS/ApplicationELB",
+            "TargetResponseTime",
+            "LoadBalancer",
+            "SmartRetailX-ALB"
           ]
         ],
-        "period": 60,
-        "stat": "Sum",
         "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
         "region": "ap-south-1"
       }
     },
     {
       "type": "metric",
       "x": 0,
-      "y": 18,
+      "y": 9,
       "width": 12,
       "height": 6,
       "properties": {
-        "title": "SQS Messages Sent / Received",
+        "title": "ALB - Healthy vs Unhealthy Hosts",
         "metrics": [
           [
-            "AWS/SQS",
-            "NumberOfMessagesSent",
-            "QueueName",
-            "SmartRetailX-Queue"
+            "AWS/ApplicationELB",
+            "HealthyHostCount",
+            "TargetGroup",
+            "SmartRetailX-User-TG",
+            "LoadBalancer",
+            "SmartRetailX-ALB"
           ],
           [
-            "AWS/SQS",
-            "NumberOfMessagesReceived",
-            "QueueName",
-            "SmartRetailX-Queue"
-          ],
-          [
-            "AWS/SQS",
-            "ApproximateNumberOfMessagesVisible",
-            "QueueName",
-            "SmartRetailX-Queue"
+            "AWS/ApplicationELB",
+            "UnHealthyHostCount",
+            "TargetGroup",
+            "SmartRetailX-User-TG",
+            "LoadBalancer",
+            "SmartRetailX-ALB"
           ]
         ],
-        "period": 60,
-        "stat": "Sum",
         "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
+        "region": "ap-south-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 9,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "ECS - CPU Utilization",
+        "metrics": [
+          [
+            "AWS/ECS",
+            "CPUUtilization",
+            "ClusterName",
+            "SmartRetailX-Cluster",
+            "ServiceName",
+            "SmartRetailX-UserService"
+          ]
+        ],
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
+        "region": "ap-south-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 15,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "ECS - Memory Utilization",
+        "metrics": [
+          [
+            "AWS/ECS",
+            "MemoryUtilization",
+            "ClusterName",
+            "SmartRetailX-Cluster",
+            "ServiceName",
+            "SmartRetailX-UserService"
+          ]
+        ],
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
+        "region": "ap-south-1"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 15,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "ECS - Running Task Count",
+        "metrics": [
+          [
+            "ECS/ContainerInsights",
+            "RunningTaskCount",
+            "ClusterName",
+            "SmartRetailX-Cluster",
+            "ServiceName",
+            "SmartRetailX-UserService"
+          ]
+        ],
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
         "region": "ap-south-1"
       }
     }
