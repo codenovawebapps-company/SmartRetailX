@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ProductService.Data;
 using ProductService.Models;
-using System.Collections.Concurrent;
 
 namespace ProductService.Controllers;
 
@@ -8,65 +10,119 @@ namespace ProductService.Controllers;
 [Route("api/v1/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private static readonly ConcurrentDictionary<int, Product> _products = new();
-    private static int _nextId = 0;
+    private readonly ProductDbContext _db;
+    private readonly ILogger<ProductsController> _logger;
 
-    static ProductsController()
+    public ProductsController(ProductDbContext db, ILogger<ProductsController> logger)
     {
-        var p1 = new Product { Id = 1, Name = "Laptop", Description = "High performance laptop", Price = 999.99m, Category = "Electronics" };
-        var p2 = new Product { Id = 2, Name = "Headphones", Description = "Noise-cancelling headphones", Price = 199.99m, Category = "Electronics" };
-        _products[p1.Id] = p1;
-        _products[p2.Id] = p2;
-        _nextId = 2;
+        _db = db;
+        _logger = logger;
     }
 
+    /// <summary>
+    /// GET /api/v1/products
+    /// Returns all products, optionally filtered by category or search term.
+    /// </summary>
     [HttpGet]
-    public ActionResult<IEnumerable<Product>> GetProducts()
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts(
+        [FromQuery] string? category = null,
+        [FromQuery] string? search = null)
     {
-        return Ok(_products.Values);
+        var query = _db.Products.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(category) && !category.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(p => p.Category.ToLower() == category.ToLower());
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(s) || p.Description.ToLower().Contains(s));
+        }
+
+        var products = await query.ToListAsync();
+        return Ok(products);
     }
 
+    /// <summary>
+    /// GET /api/v1/products/{id}
+    /// Retrieves a single product by ID.
+    /// </summary>
     [HttpGet("{id}")]
-    public ActionResult<Product> GetProductById(int id)
+    public async Task<ActionResult<Product>> GetProductById(int id)
     {
-        if (_products.TryGetValue(id, out var product))
+        var product = await _db.Products.FindAsync(id);
+        if (product == null)
         {
-            return Ok(product);
+            return NotFound(new { message = $"Product with ID {id} not found." });
         }
-        return NotFound(new { message = $"Product with ID {id} not found." });
+        return Ok(product);
     }
 
+    /// <summary>
+    /// POST /api/v1/products
+    /// Creates a new product catalog item.
+    /// </summary>
     [HttpPost]
-    public ActionResult<Product> CreateProduct([FromBody] Product product)
+    public async Task<ActionResult<Product>> CreateProduct([FromBody] Product product)
     {
-        if (product.Id <= 0)
+        if (string.IsNullOrWhiteSpace(product.Name) || product.Price < 0)
         {
-            product.Id = Interlocked.Increment(ref _nextId);
-        }
-        else
-        {
-            int currentId;
-            do
-            {
-                currentId = _nextId;
-                if (product.Id < currentId) break;
-            } while (Interlocked.CompareExchange(ref _nextId, product.Id + 1, currentId) != currentId);
+            return BadRequest(new { message = "Valid product name and positive price are required." });
         }
 
-        _products[product.Id] = product;
+        product.CreatedAt = DateTime.UtcNow;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync();
+
         return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, product);
     }
 
+    /// <summary>
+    /// PUT /api/v1/products/{id}
+    /// Updates an existing product catalog item.
+    /// </summary>
     [HttpPut("{id}")]
-    public ActionResult<Product> UpdateProduct(int id, [FromBody] Product updatedProduct)
+    public async Task<ActionResult<Product>> UpdateProduct(int id, [FromBody] Product updatedProduct)
     {
-        if (!_products.ContainsKey(id))
+        var product = await _db.Products.FindAsync(id);
+        if (product == null)
         {
             return NotFound(new { message = $"Product with ID {id} not found." });
         }
 
-        updatedProduct.Id = id;
-        _products[id] = updatedProduct;
-        return Ok(updatedProduct);
+        if (!string.IsNullOrWhiteSpace(updatedProduct.Name)) product.Name = updatedProduct.Name;
+        if (!string.IsNullOrWhiteSpace(updatedProduct.Description)) product.Description = updatedProduct.Description;
+        if (!string.IsNullOrWhiteSpace(updatedProduct.Category)) product.Category = updatedProduct.Category;
+        if (!string.IsNullOrWhiteSpace(updatedProduct.ImageUrl)) product.ImageUrl = updatedProduct.ImageUrl;
+        if (updatedProduct.Price >= 0) product.Price = updatedProduct.Price;
+        if (updatedProduct.Stock >= 0) product.Stock = updatedProduct.Stock;
+
+        product.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(product);
+    }
+
+    /// <summary>
+    /// DELETE /api/v1/products/{id}
+    /// Deletes a product from the catalog.
+    /// </summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var product = await _db.Products.FindAsync(id);
+        if (product == null)
+        {
+            return NotFound(new { message = $"Product with ID {id} not found." });
+        }
+
+        _db.Products.Remove(product);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = $"Product with ID {id} successfully deleted." });
     }
 }

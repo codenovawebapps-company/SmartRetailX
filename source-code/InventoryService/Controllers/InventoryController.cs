@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using InventoryService.Data;
 using InventoryService.Models;
-using InventoryService.Services;
 
 namespace InventoryService.Controllers;
 
@@ -9,50 +10,99 @@ namespace InventoryService.Controllers;
 [Route("api/v1/inventory")]
 public class InventoryController : ControllerBase
 {
-    private readonly InventoryService.Services.InventoryService _inventory;
+    private readonly InventoryDbContext _db;
     private readonly ILogger<InventoryController> _logger;
 
     public InventoryController(
-        InventoryService.Services.InventoryService inventory,
+        InventoryDbContext db,
         ILogger<InventoryController> logger)
     {
-        _inventory = inventory;
+        _db = db;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get all product inventory stocks
+    /// GET /api/v1/inventory
+    /// Returns all product inventory stocks.
     /// </summary>
     [HttpGet]
-    public IActionResult GetAllInventory()
+    public async Task<ActionResult<IEnumerable<InventoryItem>>> GetAllInventory()
     {
-        return Ok(_inventory.GetAllStock());
+        var items = await _db.Items.ToListAsync();
+        return Ok(items);
     }
 
     /// <summary>
-    /// Get stock level for a product
-    /// e.g. GET /api/inventory/PROD001
+    /// GET /api/v1/inventory/{productId}
+    /// Returns the stock level for a product.
     /// </summary>
     [HttpGet("{productId}")]
-    public IActionResult GetInventory(string productId)
+    public async Task<IActionResult> GetInventory(string productId)
     {
-        var stock = _inventory.GetStock(productId);
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.ProductId == productId);
+        var stock = item?.AvailableStock ?? 0;
 
         return Ok(new
         {
             productId,
-            stock
+            stock,
+            reserved = item?.ReservedStock ?? 0,
+            updatedAt = item?.UpdatedAt ?? DateTime.UtcNow
         });
     }
 
     /// <summary>
-    /// Check if stock is available
+    /// PUT /api/v1/inventory/{productId}
+    /// Updates or sets the stock level for a specific product directly.
+    /// </summary>
+    [HttpPut("{productId}")]
+    public async Task<IActionResult> UpdateInventory(string productId, [FromBody] UpdateStockRequest request)
+    {
+        if (request.Stock < 0)
+        {
+            return BadRequest(new { message = "Stock level cannot be negative." });
+        }
+
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.ProductId == productId);
+        if (item == null)
+        {
+            item = new InventoryItem
+            {
+                ProductId = productId,
+                ProductName = $"Product {productId}",
+                AvailableStock = request.Stock,
+                ReservedStock = 0,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.Items.Add(item);
+        }
+        else
+        {
+            item.AvailableStock = request.Stock;
+            item.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            productId = item.ProductId,
+            stock = item.AvailableStock,
+            message = $"Stock updated successfully for Product {productId}."
+        });
+    }
+
+    /// <summary>
+    /// GET /api/v1/inventory/check/{productId}
+    /// Checks whether the requested quantity is in stock.
     /// </summary>
     [HttpGet("check/{productId}")]
-    public IActionResult CheckStock(string productId, [FromQuery] int quantity = 1)
+    public async Task<IActionResult> CheckStock(string productId, [FromQuery] int quantity = 1)
     {
-        var isAvailable = _inventory.CheckStock(productId, quantity);
-        var currentStock = _inventory.GetStock(productId);
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.ProductId == productId);
+        var currentStock = item?.AvailableStock ?? 0;
+        var isAvailable = currentStock >= quantity;
 
         return Ok(new
         {
@@ -64,18 +114,19 @@ public class InventoryController : ControllerBase
     }
 
     /// <summary>
-    /// Reduce stock for a product
+    /// POST /api/v1/inventory/reduce
+    /// Reduces stock for a product upon purchase.
     /// </summary>
     [HttpPost("reduce")]
-    public IActionResult ReduceStock([FromBody] StockActionRequest request)
+    public async Task<IActionResult> ReduceStock([FromBody] StockActionRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.ProductId) || request.Quantity <= 0)
         {
             return BadRequest(new { message = "Invalid request payload. ProductId and Quantity (> 0) are required." });
         }
 
-        var success = _inventory.ReduceStock(request.ProductId, request.Quantity);
-        if (!success)
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.ProductId == request.ProductId);
+        if (item == null || item.AvailableStock < request.Quantity)
         {
             return BadRequest(new
             {
@@ -83,33 +134,44 @@ public class InventoryController : ControllerBase
                 message = "Insufficient stock or product not found.",
                 productId = request.ProductId,
                 requestedQuantity = request.Quantity,
-                currentStock = _inventory.GetStock(request.ProductId)
+                currentStock = item?.AvailableStock ?? 0
             });
         }
+
+        item.AvailableStock -= request.Quantity;
+        item.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Reduced stock for Product {ProductId} by {Quantity}. Remaining: {Remaining}",
+            request.ProductId, request.Quantity, item.AvailableStock);
 
         return Ok(new
         {
             success = true,
             message = "Stock reduced successfully.",
             productId = request.ProductId,
-            remainingStock = _inventory.GetStock(request.ProductId)
+            remainingStock = item.AvailableStock
         });
     }
 
     /// <summary>
-    /// Consume/process OrderCreated event
+    /// POST /api/v1/inventory/events/order-created
+    /// Consumes and processes OrderCreated events asynchronously.
     /// </summary>
     [HttpPost("events/order-created")]
-    public IActionResult HandleOrderCreatedEvent([FromBody] OrderCreatedEvent orderEvent)
+    public async Task<IActionResult> HandleOrderCreatedEvent([FromBody] OrderCreatedEvent orderEvent)
     {
         if (orderEvent == null || string.IsNullOrWhiteSpace(orderEvent.ProductId) || orderEvent.Quantity <= 0)
         {
             return BadRequest(new { message = "Invalid OrderCreatedEvent payload." });
         }
 
-        var result = _inventory.ProcessOrderCreatedEvent(orderEvent);
-        if (!result)
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.ProductId == orderEvent.ProductId);
+        if (item == null || item.AvailableStock < orderEvent.Quantity)
         {
+            _logger.LogWarning("Event stock reduction failed for Order {OrderId}: Insufficient stock for {ProductId}",
+                orderEvent.OrderId, orderEvent.ProductId);
+
             return BadRequest(new
             {
                 success = false,
@@ -119,19 +181,20 @@ public class InventoryController : ControllerBase
             });
         }
 
+        item.AvailableStock -= orderEvent.Quantity;
+        item.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Processed OrderCreated event: Reduced stock for Order {OrderId}, Product {ProductId} by {Quantity}. Remaining: {Remaining}",
+            orderEvent.OrderId, orderEvent.ProductId, orderEvent.Quantity, item.AvailableStock);
+
         return Ok(new
         {
             success = true,
             message = $"Stock reduced successfully for Order {orderEvent.OrderId}.",
             orderId = orderEvent.OrderId,
             productId = orderEvent.ProductId,
-            remainingStock = _inventory.GetStock(orderEvent.ProductId)
+            remainingStock = item.AvailableStock
         });
     }
-}
-
-public class StockActionRequest
-{
-    public string ProductId { get; set; } = string.Empty;
-    public int Quantity { get; set; }
 }

@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/out
+**/data/*.db-shm
+**/data/*.db-wal
+Dockerfile*
+docker-compose*
+README*

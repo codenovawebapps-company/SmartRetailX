@@ -6,24 +6,33 @@ namespace OrderService.Services;
 
 public class EventPublisher
 {
-    private readonly IAmazonEventBridge _eventBridge;
+    private readonly IAmazonEventBridge? _eventBridge;
     private readonly IConfiguration _configuration;
     private readonly ILogger<EventPublisher> _logger;
     private readonly string _eventBusName;
 
     public EventPublisher(
-        IAmazonEventBridge eventBridge, 
         IConfiguration configuration,
-        ILogger<EventPublisher> logger)
+        ILogger<EventPublisher> logger,
+        IAmazonEventBridge? eventBridge = null)
     {
-        _eventBridge = eventBridge;
         _configuration = configuration;
         _logger = logger;
+        _eventBridge = eventBridge;
         _eventBusName = _configuration["EventBridge:EventBusName"] ?? "smartretailx-event-bus";
     }
 
     public async Task PublishEventAsync<T>(string detailType, T detailEvent)
     {
+        var payload = JsonSerializer.Serialize(detailEvent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        if (_eventBridge == null)
+        {
+            _logger.LogInformation("[Local Simulation] Event published to {EventBus} with DetailType: {DetailType}. Payload: {Payload}",
+                _eventBusName, detailType, payload);
+            return;
+        }
+
         try
         {
             var request = new PutEventsRequest
@@ -36,7 +45,7 @@ public class EventPublisher
                         EventBusName = _eventBusName,
                         DetailType = detailType,
                         Time = DateTime.UtcNow,
-                        Detail = JsonSerializer.Serialize(detailEvent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
+                        Detail = payload
                     }
                 }
             };
@@ -54,7 +63,7 @@ public class EventPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while publishing event to EventBridge.");
+            _logger.LogWarning(ex, "AWS EventBridge unavailable. Simulating local event broadcast for {DetailType}: {Payload}", detailType, payload);
         }
     }
 }
